@@ -3,23 +3,21 @@
 # https://github.com/user/dnf5-fish-completion
 
 function __fish_dnf5_complete -d "Get completions from dnf5"
-    # Get the current commandline tokens
     set -l tokens (commandline -op)
-    set -l cmdline (commandline)
+    set -l current (commandline -t)
 
-    # Detect if we're completing a new empty position (cursor after trailing space)
-    # or completing the current partial word
-    if string match -q -r '\s$' -- $cmdline
-        # Trailing space → completing an empty position after the last token
-        # dnf5 expects words array to include the empty position
+    # Build the full words array like bash does for dnf5 --complete
+    # commandline -op returns completed tokens (before cursor)
+    # commandline -t returns the token under cursor (may be partial or empty)
+    if string length -q -- $current
+        # Completing a partial token (e.g. "dnf co" → current="co")
+        set tokens $tokens $current
+        set -l cword (math (count $tokens) - 1)
+        dnf5 "--complete=$cword,add_description=0" $tokens 2>/dev/null
+    else
+        # Cursor is at an empty position after a space
         set -l cword (count $tokens)
         dnf5 "--complete=$cword,add_description=0" $tokens "" 2>/dev/null
-    else
-        # No trailing space → completing the current token itself
-        set -l cword (math (count $tokens) - 1)
-        if test $cword -ge 0
-            dnf5 "--complete=$cword,add_description=0" $tokens 2>/dev/null
-        end
     end
 end
 
